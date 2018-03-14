@@ -11,11 +11,11 @@ app.listen(port, () => {
     let currencyUpd = setInterval(getCurrencyData, 100);
 });
 app.get('/api/currency', (req, res) => {
-    res.send(currencyData);
+    res.json(currencyData);
 });
 
 function getCurrencyData() {
-    const fsyms = 'BTC,ETH,LTC,XRP,BCH';
+    const fsyms = 'BTC,ETH,LTC,XRP,BCH,TRX,BNB,ETC,EOS,XEM,NEO,DASH,HT,NCASH,XMR,VEN,ICX,ADA,XRB,IOT,ZEC,XLM,IOST,ABT,WAVES,OMG,ELF,LSK,QTUM,ELA,POWR,MTL,MCO,NBT,EMC2,GVT,HSR,BTG,MTN*,BTM*,AST,DGD,TNT,ADX,THETA,GNT,OCN,ZIL,SUB,SRN';
 
     https.get('https://min-api.cryptocompare.com/data/pricemultifull?fsyms=' + fsyms + '&tsyms=USD', (res) => {
         let data = '';
@@ -36,7 +36,7 @@ function getCurrencyData() {
 
                 currencyArray.push(tempCur);
             }
-            currencyData = JSON.stringify(currencyArray);
+            currencyData = currencyArray;
         }).on("error", (err) => {
             console.log("Error: " + err.message);
         });

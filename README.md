@@ -1,3 +1,3 @@
 # crypto-api
 
-Start `npm run dev`
+`npm start`
