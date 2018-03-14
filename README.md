@@ -1,3 +1,3 @@
-#crypto-api
+# crypto-api
 
-Start 'npm run dev'
+Start `npm run dev`
