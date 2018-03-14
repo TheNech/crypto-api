@@ -1,0 +1,22 @@
+{
+  "name": "crypto-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheNech/crypto-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TheNech/crypto-api/issues"
+  },
+  "homepage": "https://github.com/TheNech/crypto-api#readme",
+  "dependencies": {
+    "express": "^4.16.3"
+  }
+}
