@@ -3,9 +3,19 @@ const https      = require('https');
 const bodyParser = require('body-parser');
 const mysql      = require('mysql');
 const fetch      = require('node-fetch');
+const admin      = require('firebase-admin');
 const app        = express();
 const port       = (process.env.PORT || '8000');
 app.use(bodyParser.urlencoded({ extended: true }));
+
+//firebase
+let serviceAccount = require('./serviceAccount.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://test-e8d1b.firebaseio.com"
+});
+//--------
 
 let currencyData = '';
 
@@ -25,10 +35,6 @@ app.listen(port, () => {
     // connection.connect(function(err) {
     //     if(err) throw err;
     // });    
-
-    setTimeout(function() {
-        sendNotify();
-    }, 150);
     
 });
 app.get('/api/currency', (req, res) => {
@@ -50,11 +56,23 @@ app.post('/api/notification', (req, res) => {
 
     res.status(200).json({});
 });
-app.post('/api/notification/max', (req, res) => {
-    let sql = 'INSERT INTO notify_max SET ?';
-    connection.query(sql, req.body, function (err, rows, fields) {
-        if(err) throw err;
-    });
+app.get('/api/notification/send', (req, res) => {
+    let registrationToken = 'bk3RNwTe3H0:CI2k_HHwgIpoDKCIZvvDMExUdFQ3P1...';
+
+    let payload = {
+      notification: {
+        title: 'Test notification',
+        body: 'I am test notification:)'
+      }
+    };
+
+    admin.messaging().sendToDevice(registrationToken, payload)
+      .then(function(response) {
+        console.log('Successfully sent message:', response);
+      })
+      .catch(function(error) {
+        console.log('Error sending message:', error);
+      });
 
     res.status(200).json({});
 });
@@ -93,7 +111,7 @@ function sendNotify() {
     let url = 'https://min-api.cryptocompare.com/data/pricemulti?fsyms='+ fsyms + '&tsyms=USD';
     let delArray = [];
 
-    getNotifyMaxList.then(arr => {
+    getNotifyList.then(arr => {
         fetch(url)
             .then(res => res.json())
             .then(json => {
@@ -106,8 +124,8 @@ function sendNotify() {
     console.log(delArray);
 }
 
-let getNotifyMaxList = new Promise(function(resolve, reject) {
-    let sql = 'SELECT * FROM notify_max';
+let getNotifyList = new Promise(function(resolve, reject) {
+    let sql = 'SELECT * FROM notify';
     let notifyList = [];
     connection.query(sql,  function (err, rows, fields) {
         if(err) throw err;
