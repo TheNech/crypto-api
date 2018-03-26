@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const mysql      = require('mysql');
 const fetch      = require('node-fetch');
 const admin      = require('firebase-admin');
+const logger     = require('./logger');
 const app        = express();
 const port       = (process.env.PORT || '8000');
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -29,24 +30,30 @@ const connection = mysql.createConnection({
 //-----
 
 app.listen(port, () => {
-    console.log('Server started on ' + port)
+    logger.info('Server started on ' + port)
 
     let currencyUpd = setInterval(getCurrencyData, 100);
     // connection.connect(function(err) {
     //     if(err) throw err;
-    // });    
+    // });   
     
 });
 app.get('/api/currency', (req, res) => {
     res.json(currencyData);
 });
 app.post('/api/tokens', (req,res) => {
-    let sql = 'INSERT INTO tokens SET ?';
-    connection.query(sql, req.body, function (err, rows, fields) {
-        if(err) throw err;
+    let sqlSel = 'SELECT * FROM tokens WHERE ?'
+    connection.query(sqlSel, req.body, function (err, rows, fields) {
+        if (err) throw err;
+        if(rows.length == 0) {
+            let sql = 'INSERT INTO tokens SET ?';
+            connection.query(sql, req.body, function (err, rows, fields) {
+                if(err) throw err;
+                res.status(200).json({});
+            });
+        } else res.status(200).json({});
     });
 
-    res.status(200).json({});
 });
 app.post('/api/notification', (req, res) => {
     let sql = 'INSERT INTO notify SET ?';
@@ -57,22 +64,24 @@ app.post('/api/notification', (req, res) => {
     res.status(200).json({});
 });
 app.get('/api/notification/send', (req, res) => {
-    let registrationToken = 'bk3RNwTe3H0:CI2k_HHwgIpoDKCIZvvDMExUdFQ3P1...';
-
-    let payload = {
+    logger.info(req.query);
+    var payload = {
       notification: {
-        title: 'Test notification',
-        body: 'I am test notification:)'
+        title: req.query.title,
+        body: req.query.body
       }
     };
 
-    admin.messaging().sendToDevice(registrationToken, payload)
-      .then(function(response) {
-        console.log('Successfully sent message:', response);
-      })
-      .catch(function(error) {
-        console.log('Error sending message:', error);
-      });
+    getTokens.then(tokens => {
+        logger.debug(tokens);
+        admin.messaging().sendToDevice(tokens, payload)
+          .then(function(response) {
+            logger.debug('Successfully sent message:', response);
+          })
+          .catch(function(error) {
+            logger.warn('Error sending message:', error);
+          });
+    });
 
     res.status(200).json({});
 });
@@ -132,6 +141,21 @@ let getNotifyList = new Promise(function(resolve, reject) {
         else {
             notifyList = rows.concat([]);
             resolve(notifyList);
+        }
+    });
+});
+
+let getTokens = new Promise(function(resolve, reject) {
+    let sql = 'SELECT registration_id FROM tokens';
+
+    connection.query(sql, function(err, rows, fields) {
+        if (err) throw err;
+        else {
+            let tokens = [];
+            rows.forEach(function(item, i, rows) {
+                tokens.push(item.registration_id.toString());
+            });
+            resolve(tokens);
         }
     });
 });
