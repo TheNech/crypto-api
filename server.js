@@ -73,7 +73,6 @@ app.get('/api/notification/send', (req, res) => {
     };
 
     getTokens.then(tokens => {
-        logger.debug(tokens);
         admin.messaging().sendToDevice(tokens, payload)
           .then(function(response) {
             logger.debug('Successfully sent message:', response);
