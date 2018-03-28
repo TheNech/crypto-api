@@ -32,8 +32,7 @@ app.listen(port, () => {
     logger.info('Server started on ' + port)
 
     let currencyUpd = setInterval(getCurrencyData, 100);  
-    
-    chekNotify();
+    let priceNotify = setInterval(chekNotify, 5000);
 });
 
 app.get('/api/currency', (req, res) => {
@@ -155,6 +154,8 @@ function chekNotify() {
     fetch(url)
         .then(res => res.json())
         .then(json => {
+            
+            let getMaxNotifyList = new Promise(funcMax);
             getMaxNotifyList.then(arr => {
                 arr.forEach(function(item, i, arr){
                     if(json[item.currency].USD > item.price) {
@@ -164,6 +165,7 @@ function chekNotify() {
                 });
             });
 
+            let getMinNotifyList = new Promise(funcMin);
             getMinNotifyList.then(arr => {
                 arr.forEach(function(item, i, arr){
                     if(json[item.currency].USD < item.price) {
@@ -174,31 +176,31 @@ function chekNotify() {
             });
         })
         .catch(err => console.log(err));
+
+    let funcMax = function(resolve, reject) {
+        let sql = 'SELECT * FROM notify_max';
+        let notifyList = [];
+        connection.query(sql,  function (err, rows, fields) {
+            if(err) throw err;
+            else {
+                notifyList = rows.concat([]);
+                resolve(notifyList);
+            }
+        });
+    };
+
+    let funcMin = function(resolve, reject) {
+        let sql = 'SELECT * FROM notify_min';
+        let notifyList = [];
+        connection.query(sql,  function (err, rows, fields) {
+            if(err) throw err;
+            else {
+                notifyList = rows.concat([]);
+                resolve(notifyList);
+            }
+        });
+    };
 }
-
-let getMaxNotifyList = new Promise(function(resolve, reject) {
-    let sql = 'SELECT * FROM notify_max';
-    let notifyList = [];
-    connection.query(sql,  function (err, rows, fields) {
-        if(err) throw err;
-        else {
-            notifyList = rows.concat([]);
-            resolve(notifyList);
-        }
-    });
-});
-
-let getMinNotifyList = new Promise(function(resolve, reject) {
-    let sql = 'SELECT * FROM notify_min';
-    let notifyList = [];
-    connection.query(sql,  function (err, rows, fields) {
-        if(err) throw err;
-        else {
-            notifyList = rows.concat([]);
-            resolve(notifyList);
-        }
-    });
-});
 
 let getTokens = new Promise(function(resolve, reject) {
     let sql = 'SELECT registration_id FROM tokens';
