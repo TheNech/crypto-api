@@ -32,7 +32,7 @@ app.listen(port, () => {
     logger.info('Server started on ' + port)
 
     let currencyUpd = setInterval(getCurrencyData, 100);  
-    let priceNotify = setInterval(chekNotify, 5000);
+    let priceNotify = setInterval(chekNotify, 10000);
 });
 
 app.get('/api/currency', (req, res) => {
@@ -97,7 +97,7 @@ app.post('/api/notify/min/del', (req, res) => {
     res.status(200).json({});
 });
 
-app.get('/api/notification/send', (req, res) => {
+app.get('/api/noty/send', (req, res) => {
     let payload = {
       notification: {
         title: req.query.title,
@@ -105,6 +105,22 @@ app.get('/api/notification/send', (req, res) => {
       }
     };
 
+    let funcToken = function(resolve, reject) {
+        let sql = 'SELECT registration_id FROM tokens';
+
+        connection.query(sql, function(err, rows, fields) {
+            if (err) throw err;
+            else {
+                let tokens = [];
+                rows.forEach(function(item, i, rows) {
+                    tokens.push(item.registration_id.toString());
+                });
+                resolve(tokens);
+            }
+        });
+    };
+
+    let getTokens = new Promise(funcToken);
     getTokens.then(tokens => {
         admin.messaging().sendToDevice(tokens, payload)
           .then(function(response) {
@@ -154,25 +170,33 @@ function chekNotify() {
     fetch(url)
         .then(res => res.json())
         .then(json => {
-            
+
             let getMaxNotifyList = new Promise(funcMax);
             getMaxNotifyList.then(arr => {
-                arr.forEach(function(item, i, arr){
-                    if(json[item.currency].USD > item.price) {
-                        sendPriceNotify('max', item.registration_id, item.currency, json[item.currency].USD);
-                        delFromTable('notify_max', item.id);
+                let idArr = [];
+                for(let i = 0; i < arr.length; i++) {
+                    if(json[arr[i].currency].USD > arr[i].price) {
+                        sendPriceNotify('max', arr[i].registration_id, arr[i].currency, json[arr[i].currency].USD);
+                        idArr.push(arr[i].id);
                     }
-                });
+                }
+                if(idArr.length) {
+                    delFromTable('notify_max', idArr);
+                }
             });
 
             let getMinNotifyList = new Promise(funcMin);
             getMinNotifyList.then(arr => {
-                arr.forEach(function(item, i, arr){
-                    if(json[item.currency].USD < item.price) {
-                        sendPriceNotify('min', item.registration_id, item.currency, json[item.currency].USD);
-                        delFromTable('notify_min', item.id);
+                let idArr = [];
+                for(let i = 0; i < arr.length; i++) {
+                    if(json[arr[i].currency].USD < arr[i].price) {
+                        sendPriceNotify('min', arr[i].registration_id, arr[i].currency, json[arr[i].currency].USD);
+                        idArr.push(arr[i].id);
                     }
-                });
+                }
+                if(idArr.length) {
+                    delFromTable('notify_min', idArr);
+                }
             });
         })
         .catch(err => console.log(err));
@@ -202,21 +226,6 @@ function chekNotify() {
     };
 }
 
-let getTokens = new Promise(function(resolve, reject) {
-    let sql = 'SELECT registration_id FROM tokens';
-
-    connection.query(sql, function(err, rows, fields) {
-        if (err) throw err;
-        else {
-            let tokens = [];
-            rows.forEach(function(item, i, rows) {
-                tokens.push(item.registration_id.toString());
-            });
-            resolve(tokens);
-        }
-    });
-});
-
 function sendPriceNotify(flag, token, currency, price) {
     let payload = {};
     if(flag == 'max') {
@@ -245,10 +254,15 @@ function sendPriceNotify(flag, token, currency, price) {
       });
 }
 
-function delFromTable(table, id) {
-    let sql = "DELETE FROM " + table + " WHERE id=" + id;
+function delFromTable(table, idArr) {
+    let sql = "DELETE FROM " + table + " WHERE id IN (";
+    for(let i = 0; i < idArr.length - 1; i++) {
+        sql += "?, ";
+    }
+    sql += "?)";
+    logger.debug(sql);
 
-    connection.query(sql, function(err, rows, fields) {
+    connection.query(sql, idArr, function(err, rows, fields) {
         if(err) throw err;
     });
 }
