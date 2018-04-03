@@ -4,7 +4,8 @@ const bodyParser = require('body-parser');
 const mysql      = require('mysql');
 const fetch      = require('node-fetch');
 const admin      = require('firebase-admin');
-const logger     = require('./logger');
+const logger     = require('./app/logger');
+const env        = require('dotenv').load();
 const app        = express();
 const port       = (process.env.PORT || '8000');
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -21,10 +22,10 @@ let currencyData = '';
 
 //mysql
 const connection = mysql.createConnection({
-    host     : 'localhost',
-    user     : 'root',
-    password : 'root',
-    database : 'crypto'
+    host     : process.env.DB_HOST,
+    user     : process.env.DB_USER,
+    password : process.env.DB_PASS,
+    database : process.env.DB_NAME
 });
 //-----
 
@@ -260,8 +261,7 @@ function delFromTable(table, idArr) {
         sql += "?, ";
     }
     sql += "?)";
-    logger.debug(sql);
-
+    
     connection.query(sql, idArr, function(err, rows, fields) {
         if(err) throw err;
     });
